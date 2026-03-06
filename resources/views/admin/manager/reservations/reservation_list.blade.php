@@ -19,7 +19,7 @@
 
   <nav class="navbar">
 	@php
-		$user = \App\Models\Admin::find(Auth::id());
+		$user = Auth::guard('admin')->user();
 
 		$calendar_route = $user && $user->role === 'Manager'
 			? route('admin.reservation.list')

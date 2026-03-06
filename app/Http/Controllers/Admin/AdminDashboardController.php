@@ -12,6 +12,9 @@ use Carbon\Carbon;
 use App\Models\DownPayment;
 use App\Models\Reservation;
 use App\Models\Bill;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AdminDashboardController extends Controller
 {
@@ -23,6 +26,13 @@ class AdminDashboardController extends Controller
 
     public function create()
     {
+        $user = Auth::guard('admin')->user();
+        Log::info('Authenticated user', [
+            'guard' => 'admin',
+            'user_id' => $user?->id,
+            'role' => $user?->role
+        ]);
+
         $now = Carbon::now();
         $currentMonth = $now->month;
         $currentYear  = $now->year;
@@ -30,7 +40,7 @@ class AdminDashboardController extends Controller
         // Revenue for current month
         $revenue = Bill::whereIn('status', ['paid', 'partially paid'])
             ->whereMonth('date', $currentMonth)
-            ->sum(Bill::raw('-grand_total'));
+            ->sum(Bill::raw('grand_total'));
 
         // Reservation counts
         $completedReservations = Reservation::where('status', 'completed')
@@ -87,7 +97,7 @@ class AdminDashboardController extends Controller
             'monthlyRevenue',
             'monthlyLabels',
             'annualRevenue',
-            'averageMonthlyRevenue'
+            'averageMonthlyRevenue',
         ));
 
     }
@@ -96,9 +106,15 @@ class AdminDashboardController extends Controller
     {
 
         $this->validator($request->all())->validate();
+        $allowedRoles = ['Vendor', 'Manager'];
+        $role = $request->role;
+
+        if (!in_array($role, $allowedRoles)) {
+            return back()->withErrors(['role' => 'Invalid role selected.']);
+        }
 
         $admin = Admin::create([
-            'name' => $request->name,
+            'name' => $request->name, //'id' => Str::uuid(),
             'number' => $request->number,  // Store the contact number
             'email' => $request->email,
             'password' => Hash::make($request->password),  // Hash the password

@@ -18,25 +18,22 @@ class VendorMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        $userId = Auth::id();
+        // Always pull the authenticated user from the admin guard
+        $user = Auth::guard('admin')->user();
 
-        if ($userId) {
-            // Attempt to find the admin by their ID
-            $user = Admin::find($userId);
-
-            // Debug: Log if the user is found or not
-            if ($user) {
-                Log::info('Authenticated admin user found:', ['name' => $user->name]);
-            } else {
-                Log::warning('Admin user not found with ID: ' . $userId);
-                return redirect()->route('login');
-            }
-        } else {
-            return redirect()->route('login');  // Redirect if not an admin or manager
+        if (!$user) {
+            Log::warning('Vendor access attempted without admin guard authentication.');
+            return redirect()->route('login');
         }
 
-        if ($user && ($user->role === 'Vendor')) {
-            return $next($request);  // Allow the request to continue if the user is an admin or manager
+        // Log for debugging
+        Log::info('Authenticated admin user found via admin guard:', ['name' => $user->name]);
+
+        if ($user->role === 'Vendor') {
+            return $next($request);
         }
+
+        // not vendor
+        return redirect()->route('login');
     }
 }

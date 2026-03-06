@@ -22,16 +22,16 @@ class ManagerProfileController extends Controller
 
     public function view_profile()
     {
-        $userId = Auth::id();
-        $admin = Admin::find($userId);
+        $admin = Auth::guard('admin')->user();
         return view('admin.manager.profile.profile', compact('admin'));
     }
 
     public function view_vendors_list()
     {
-        $vendors = Admin::whereRaw('LOWER(role) = ?', ['vendor'])->get();
+        $vendors = Admin::where('role', 'Vendor')->get();
+        $admin = Auth::guard('admin')->user();
 
-        return view('admin.manager.profile.vendors_list', compact('vendors'));
+        return view('admin.manager.profile.vendors_list', compact('vendors', 'admin'));
     }
 
     public function update_profile(Request $request, $id)

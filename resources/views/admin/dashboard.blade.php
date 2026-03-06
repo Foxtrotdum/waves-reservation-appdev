@@ -17,7 +17,7 @@
   <!-- NAVIGATION BAR SECTION -->
   <nav class="navbar">
     @php
-    $user = \App\Models\Admin::find(Auth::id());
+    $user = Auth::guard('admin')->user();
     $calendar_route = $user && $user->role === 'Manager' ? route('admin.reservation.list') : route('admin.vendor.reservation_calendar');
     $amenities_route = $user && $user->role === 'Manager' ? route('admin.manager.amenities', ['type' => 'cottage']) : route('admin.vendor.amenities', ['type' => 'cottage']);
   @endphp

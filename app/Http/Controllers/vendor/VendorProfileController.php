@@ -13,20 +13,41 @@ class VendorProfileController extends Controller
 {
     public function view_profile()
     {
-        $userId = Auth::id();
-        $admin = Admin::find($userId);
-        return view('admin.vendor.profile.profile', compact('admin'));
+        $admin = Auth::guard('admin')->user();
+        if (!$admin) {
+            return redirect()->route('login')
+                ->with('error', 'Please login first.');
+        }
+
+        return view(
+            'admin.vendor.profile.profile',
+            compact('admin')
+        );
     }
 
     public function edit_profile($id)
     {
-        $vendor = Admin::findOrFail($id);
-        return view('admin.vendor.profile.edit_profile', compact('vendor'));
+       $vendor = Auth::guard('admin')->user();
+
+        if (!$vendor || $vendor->id !== $id) {
+
+            abort(403, 'Unauthorized access.');
+        }
+
+        return view(
+            'admin.vendor.profile.edit_profile',
+            compact('admin')
+        );
     }
 
     public function update_profile(Request $request, $id)
     {
-        $vendor = Admin::findOrFail($id);
+        $vendor = Auth::guard('admin')->user();
+
+        if (!$vendor || $vendor->id !== $id) {
+
+            abort(403, 'Unauthorized access.');
+        }
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -43,6 +64,12 @@ class VendorProfileController extends Controller
 
     public function showPaymentPage(Reservation $reservation)
     {
+        $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+
+            return redirect()->route('login');
+        }
         $total = optional($reservation->bill)->grand_total ?? 0;
         return view('admin.vendor.reservations.payment', compact('reservation', 'total'));
     }

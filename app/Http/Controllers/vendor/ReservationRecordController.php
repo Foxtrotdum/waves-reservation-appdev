@@ -21,7 +21,11 @@ class ReservationRecordController extends Controller
 {
     public function view_balance()
 {
-    $vendor = auth('admin')->user();
+    $vendor = Auth::guard('admin')->user();
+
+    if (!$vendor || !in_array($vendor->role, ['Manager','Vendor'])) {
+            return redirect()->route('login')->with('error','Unauthorized access.');
+        }
 
     $reservations = Reservation::query()
         ->select(['id','res_num','customer_id','startTime','endTime','status','date'])
@@ -66,7 +70,7 @@ class ReservationRecordController extends Controller
     
     public function view_all_reservations()
     {
-        $vendor = auth('admin')->user();
+        $vendor = Auth::guard('admin')->user();
     
         $reservations = Reservation::query()
             ->select(['id','res_num','customer_id','date','startTime','endTime','status'])
@@ -128,8 +132,7 @@ class ReservationRecordController extends Controller
         $pendingReservations = $pendingReservationsWithDP->merge($pendingReservationsWithoutDP);
         $allReservations = $reservations;
 
-        $userId = Auth::id();
-        $user = Admin::find($userId);
+        $user = Auth::guard('admin')->user();
 
         if ($user->role == 'Manager') {
             return view('admin.manager.reservations.all_reservations', compact(
@@ -176,8 +179,7 @@ class ReservationRecordController extends Controller
 
     public function view_reservation()
     {
-        $userId = Auth::id();
-        $user = Admin::find($userId);
+        $user = Auth::guard('admin')->user();
 
         if ($user->role == 'Manager') {
             return view('admin.manager.reservations.reservation_list');

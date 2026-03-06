@@ -45,8 +45,11 @@ class AmenitiesController extends Controller
             return response()->json(['amenities' => $amenities]);
         }
 
-        $userId = Auth::id();
-        $user = Admin::find($userId);
+        $user = Auth::guard('admin')->user();
+
+        if (!$user || !in_array($user->role, ['Manager', 'Vendor'])) {
+            return redirect()->route('login')->with('error', 'Unauthorized access.');
+        }
 
         if ($user->role == 'Manager') {
             return view('admin.manager.amenities.index', compact('amenities', 'type'));
@@ -70,7 +73,7 @@ class AmenitiesController extends Controller
         }
 
         // Get the authenticated admin's ID
-        $userId = Auth::id();
+        $userId = Auth::guard('admin')->user()->id;
 
         Log::debug('Admin ID:', [$userId]);
 
@@ -138,7 +141,7 @@ class AmenitiesController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'regex:/^\d+(\.\d{1,2})?$/'],
             'type' => ['required', 'string', 'max:255'],
-            'added_by' => ['required', 'integer'],
+            'added_by' => ['required', 'integer'], //'added_by' => 'required|uuid|exists:admins,id'
         ]);
     }
 

@@ -17,25 +17,16 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        $userId = Auth::id();
+        $user = Auth::guard('admin')->user();
 
-        if ($userId) {
-            // Attempt to find the admin by their ID
-            $user = \App\Models\Admin::find($userId);
-
-            // Debug: Log if the user is found or not
-            if ($user) {
-                Log::info('Authenticated admin user found:', ['name' => $user->name]);
-            } else {
-                Log::warning('Admin user not found with ID: ' . $userId);
-                return redirect()->route('login');
-            }
-        } else {
-            return redirect()->route('login');  // Redirect if not an admin or manager
+        if (!$user) {
+            Log::warning('Admin user not found via admin guard.');
+            return redirect()->route('login')->with('error', 'Unauthorized access.');
         }
-
+        Log::info('Authenticated admin user found:', ['name' => $user->name]);
         if ($user && ($user->role === 'Vendor' || $user->role === 'Manager')) {
             return $next($request);  // Allow the request to continue if the user is an admin or manager
         }
+        return redirect()->route('login')->with('error', 'Unauthorized role.');
     }
 }

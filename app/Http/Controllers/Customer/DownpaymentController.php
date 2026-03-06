@@ -10,28 +10,43 @@ use App\Models\Bill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\ReservedAmenity;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DownpaymentController extends Controller
 {
-    public function showReceipt(Reservation $reservation)
+    public function showReceipt($reservationId)
     {
-        // Eager load bill (singular), not bills (plural)
-        $reservation->load('reservedAmenities.amenity', 'bill');
+        $reservation = Reservation::with('bill')
+            ->where('id', $reservationId)
+            ->where('customer_id', auth()->id()) 
+            ->firstOrFail();
 
-        // Access the bill directly from the relationship
-        $bill = $reservation->bill;
-
-        if (!$bill) {
-            return back()->withErrors(['bill' => 'No billing information found. Please contact support.']);
+        if (!$reservation->bill) {
+            return back()->withErrors([
+                'bill' => 'No billing information found.'
+            ]);
         }
 
-        return view('customer.downpayment', compact('reservation', 'bill'));
+        return view('customer.downpayment', [
+            'reservation' => $reservation,
+            'bill' => $reservation->bill
+        ]);
     }
-    public function billing(Reservation $reservation)
+    public function billing($reservationId)
     {
         $customer = auth()->user();
         // Eager load bill (singular), not bills (plural)
-        $reservation->load('reservedAmenities.amenity', 'bill');
+        $reservation = Reservation::with('reservedAmenities.amenity', 'bill')
+            ->where('id', $reservationId)
+            ->where('customer_id', auth()->id()) 
+            ->firstOrFail();
+
+        return view('customer.payment', [
+            'customer' => auth()->user(),
+            'reservation' => $reservation,
+            'bill' => $reservation->bill
+        ]);
 
         // Access the bill directly from the relationship
         $bill = $reservation->bill;
@@ -43,81 +58,110 @@ class DownpaymentController extends Controller
         return view('customer.payment', compact('customer', 'reservation', 'bill'));
     }
 
-    public function storePayment(Request $request, $reservationId)
+public function storePayment(Request $request, $reservationId)
     {
         $request->validate([
-            'ref_number' => 'required|string|max:20',
-            'payment_proof' => 'required|image|max:2048',
+            'ref_number' => 'required|string|max:20|regex:/^[A-Za-z0-9]+$/',
+            'payment_proof' => 'required|file|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        $reservation = Reservation::with('reservedAmenities.amenity', 'bill')->findOrFail($reservationId);
-        $bill = $reservation->bill;
 
-        if (!$bill) {
-            return back()->withErrors(['bill' => 'No billing information found. Please contact support.']);
-        }
+        $reservation = Reservation::with([
+                'bill',
+                'reservedAmenities.amenity',
+                'downpayment'
+            ])
+            ->where('id', $reservationId)
+            ->where('customer_id', auth()->id())
+            ->firstOrFail();
 
-        $date = $reservation->date;
-        $startTime = $reservation->startTime;
-        $endTime = $reservation->endTime;
 
-        // Get amenity IDs selected in this reservation
-        $amenityIds = $reservation->reservedAmenities->pluck('amenity_id');
+        if (!$reservation->bill) {
 
-        // Check for conflicting amenities with existing downpayment on same date and time
-        $conflictingAmenities = [];
-        foreach ($reservation->reservedAmenities as $reservedAmenity) {
-            $conflict = ReservedAmenity::where('amenity_id', $reservedAmenity->amenity_id)
-                ->whereHas('reservation', function ($query) use ($reservation) {
-                    $query->where('date', $reservation->date)
-                        ->where('startTime', '<', $reservation->endTime)
-                        ->where('endTime', '>', $reservation->startTime)
-                        ->where('id', '!=', $reservation->id);
-                })
-                ->whereHas('reservation.downpayment', function ($query) {
-                    $query->whereIn('status', ['pending', 'verified']);
-                })
-                ->with('amenity')
-                ->first();
-
-            if ($conflict) {
-                $conflictingAmenities[] = optional($reservedAmenity->amenity)->name;
-            }
-        }
-
-        if (!empty($conflictingAmenities)) {
             return back()->withErrors([
-                'conflict' => 'The following amenities are already reserved with downpayments on this date and time: ' .
-                    implode(', ', $conflictingAmenities)
+                'bill' => 'Billing not found.'
             ]);
+
         }
 
-        // Store uploaded image proof
-        $imagePath = $request->file('payment_proof')->store('proofs', 'public');
 
-        // Create the new downpayment
-        $downpayment = DownPayment::create([
-            'id' => Str::uuid(),
-            'res_num' => $reservation->id,
-            'bill_id' => $bill->id,
-            'amount' => null,
-            'ref_num' => $request->ref_number,
-            'img_proof' => $imagePath,
-            'date' => now(),
-            'status' => 'pending',
-            'verified_by' => null,
+        try {
+
+            DB::beginTransaction();
+
+
+            $imagePath = $request->file('payment_proof')
+                ->store('proofs', 'private');
+
+
+
+            $downpayment = DownPayment::create([
+
+                'id' => Str::uuid(),
+
+                'res_num' => $reservation->id,
+
+                'bill_id' => $reservation->bill->id,
+
+                'amount' => null,
+
+                'ref_number' => $request->ref_number,
+
+                'img_proof' => $imagePath,
+
+                'date' => now(),
+
+                'status' => 'pending',
+
+                'verified_by' => null,
+
+            ]);
+
+
+
+            $existingBalance = Balance::where('bill_id', $reservation->bill->id)->first();
+
+            if ($existingBalance) {
+                $existingBalance->update([
+                    'dp_id' => $downpayment->id,
+                ]);
+        }
+
+
+
+            DB::commit();
+
+
+            return redirect()
+                ->route('customer.reservation')
+                ->with('success', 'Downpayment submitted successfully!');
+
+
+
+        } catch (\Exception $e) {
+
+    DB::rollBack();
+
+        // Log full error for developer
+    Log::error('Downpayment Error: ' . $e->getMessage(), [
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+    ]);
+
+    // Show detailed error only in local environment
+    if (config('app.env') === 'local') {
+        return back()->withErrors([
+            'error' => 'Payment failed: ' . $e->getMessage()
         ]);
+    }
 
-        // Update or create balance record
-        $existingBalance = Balance::where('bill_id', $bill->id)->first();
+    // Production safe message
+    return back()->withErrors([
+        'error' => 'Payment failed. Please try again or contact support.'
+    ]);
 
-        if ($existingBalance) {
-            $existingBalance->update([
-                'dp_id' => $downpayment->id,
-            ]);
         }
 
-        return redirect()->route('customer.reservation')->with('success', 'Downpayment submitted successfully!');
     }
 
 }

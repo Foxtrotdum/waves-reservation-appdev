@@ -18,7 +18,7 @@ class PaymentController extends Controller
     public function processPayment(Request $request)
     {
         $request->validate([
-            'payment_amount' => 'required|numeric|min:0',
+            'payment_amount' => 'required|numeric|min:1',
             'reservation_id' => 'required|string|regex:/^RES-\d{8}\d{3}$/',
             'bill_id' => 'required|uuid',
             'status' => 'required|string|in:verified,invalid,completed',
@@ -38,6 +38,18 @@ class PaymentController extends Controller
             $grandTotal = $bill->grand_total;
             $downPaymentAmount = $grandTotal * 0.5;
 
+            $existingDownPayments = DownPayment::where('res_num', $reservation->id)
+                ->where('status', '!=', 'invalid')
+                ->sum('amount');
+
+            $currentBalance = $grandTotal - $existingDownPayments;
+
+            if ($paymentAmount > $currentBalance) {
+                return back()->withErrors([
+                    'payment_amount' => 'Payment amount exceeds remaining balance.'
+                ]);
+            }
+
             // 1. Check for existing PENDING down payment
             $existingPendingDP = DownPayment::where('res_num', $reservation->id)
                 ->where('status', 'pending')
@@ -49,7 +61,7 @@ class PaymentController extends Controller
                 $existingPendingDP->update([
                     'amount' => $paymentAmount,
                     'status' => 'verified',
-                    'verified_by' => Auth::id(),
+                    'verified_by' => Auth::guard('admin')->user()->id,
                     'date' => now(),
                 ]);
                 $activeDownPayment = $existingPendingDP;
@@ -64,7 +76,7 @@ class PaymentController extends Controller
                     'img_proof' => null,
                     'date' => now(),
                     'status' => 'verified',
-                    'verified_by' => Auth::id(),
+                    'verified_by' => Auth::guard('admin')->user()->id,
                 ]);
             }
 
@@ -151,7 +163,7 @@ class PaymentController extends Controller
                 $existingPendingDP->update([
                     'amount' => $paymentAmount,
                     'status' => 'verified',
-                    'verified_by' => Auth::id(),
+                    'verified_by' => Auth::guard('admin')->user()->id,
                     'date' => now(),
                 ]);
                 $activeDownPayment = $existingPendingDP;
@@ -166,7 +178,7 @@ class PaymentController extends Controller
                     'img_proof' => null,
                     'date' => now(),
                     'status' => 'verified',
-                    'verified_by' => Auth::id(),
+                    'verified_by' => Auth::guard('admin')->user()->id,
                 ]);
             }
 
@@ -253,7 +265,7 @@ class PaymentController extends Controller
                 $existingPendingDP->update([
                     'amount' => $paymentAmount,
                     'status' => 'verified',
-                    'verified_by' => Auth::id(),
+                    'verified_by' => Auth::guard('admin')->user()->id,
                     'date' => now(),
                 ]);
                 $activeDownPayment = $existingPendingDP;
@@ -268,7 +280,7 @@ class PaymentController extends Controller
                     'img_proof' => null,
                     'date' => now(),
                     'status' => 'verified',
-                    'verified_by' => Auth::id(),
+                    'verified_by' => Auth::guard('admin')->user()->id,
                 ]);
             }
 
@@ -339,7 +351,7 @@ class PaymentController extends Controller
             $downpayment = DownPayment::findOrFail($validated['dp_id']);
             $downpayment->update([
                 'status' => 'invalid',
-                'verified_by' => Auth::id()
+                'verified_by' => Auth::guard('admin')->user()->id,
             ]);
 
             DB::commit();
