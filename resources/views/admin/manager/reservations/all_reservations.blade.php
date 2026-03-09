@@ -29,6 +29,8 @@
     $amenities_route = $user && $user->role === 'Manager'
       ? route('admin.manager.amenities', ['type' => 'cottage'])
       : route('admin.vendor.amenities', ['type' => 'cottage']);
+
+    $audit_route = route('admin.audit.logs');
   @endphp
 
     <div class="left-side-nav">
@@ -40,6 +42,11 @@
       <a href="{{ $amenities_route }}">
         <button class="ameneties" id="ameneties">
           <i class="material-icons nav-icons">holiday_village</i> Amenities
+        </button>
+      </a>
+      <a href="{{ $audit_route }}">
+        <button class="audit-logs" id="audit">
+          <i class="material-icons nav-icons">history</i> Audit Logs
         </button>
       </a>
       <a href="{{ $calendar_route }}">

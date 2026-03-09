@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\ManagerProfileController;
 use App\Http\Controllers\Admin\AmenitiesController;
+use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\vendor\ReservationRecordController;
 use App\Http\Controllers\Vendor\PaymentController;
 use App\Http\Controllers\Vendor\VendorProfileController;
@@ -118,6 +119,12 @@ Route::middleware(ManagerMiddleware::class)->group(function () {
         ->name('admin.manager.profile.update');
     Route::get('admin/vendors-list', [ManagerProfileController::class, 'view_vendors_list'])
         ->name('admin.vendors.list');
+    Route::get('admin/audit-logs', [AuditController::class, 'index'])
+        ->name('admin.audit.logs');
+    Route::get('admin/audit-logs/{id}', [AuditController::class, 'show'])
+        ->name('admin.audit.show');
+    Route::get('admin/audit-statistics', [AuditController::class, 'statistics'])
+        ->name('admin.audit.statistics');
     Route::post('admin/vendors-list/{id}', [ManagerProfileController::class, 'update_vendors_list'])
         ->name('admin.vendors.list.promote');
     Route::get('admin/delete-requests', [ManagerProfileController::class, 'view_del_req'])

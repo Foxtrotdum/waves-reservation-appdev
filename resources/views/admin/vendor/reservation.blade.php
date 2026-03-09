@@ -26,7 +26,7 @@
 <body class="bg-gray-100 min-h-screen">
   <nav class="navbar">
     @php
-    $user = \App\Models\Admin::find(Auth::id());
+    $user = Auth::guard('admin')->user();
     @endphp
     
     <div class="left-side-nav">

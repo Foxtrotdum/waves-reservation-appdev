@@ -82,7 +82,7 @@ table {
 .nav-icons {
   margin-right: 8px;
 }
-.ameneties, .dashboard {
+.ameneties, .dashboard, .audit-logs {
   background-color:#002044;
   color: white;
   font: 400 16px poppins;

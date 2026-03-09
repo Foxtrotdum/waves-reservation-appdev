@@ -87,7 +87,7 @@ table {
 .nav-icons {
   margin-right: 8px;
 }
-.dashboard, .reservations {
+.dashboard, .reservations, .audit-logs {
   background-color:#002044;
   color: white;
   font: 400 16px poppins;

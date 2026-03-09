@@ -178,7 +178,8 @@ table {
 }
 
 .ameneties,
-.reservations {
+.reservations,
+.audit-logs {
   background-color: #002044;
   color: white;
   font: 400 16px poppins;

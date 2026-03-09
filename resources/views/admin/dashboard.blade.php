@@ -20,6 +20,7 @@
     $user = Auth::guard('admin')->user();
     $calendar_route = $user && $user->role === 'Manager' ? route('admin.reservation.list') : route('admin.vendor.reservation_calendar');
     $amenities_route = $user && $user->role === 'Manager' ? route('admin.manager.amenities', ['type' => 'cottage']) : route('admin.vendor.amenities', ['type' => 'cottage']);
+    $audit_route = route('admin.audit.logs');
   @endphp
 
     <div class="left-side-nav">
@@ -33,6 +34,13 @@
           <i class="material-icons nav-icons">holiday_village</i> Amenities
         </button>
       </a>
+      @if($user->role === 'Manager')
+      <a href="{{ $audit_route }}">
+        <button class="audit-logs" id="audit">
+          <i class="material-icons nav-icons">history</i> Audit Logs
+        </button>
+      </a>
+      @endif
       <a href="{{ $calendar_route }}">
         <button class="reservations" id="reservation">
           <i class="material-icons nav-icons">date_range</i> Reservations
