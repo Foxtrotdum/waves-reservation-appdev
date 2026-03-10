@@ -29,14 +29,13 @@ class VendorProfileController extends Controller
     {
        $vendor = Auth::guard('admin')->user();
 
-        if (!$vendor || $vendor->id !== $id) {
-
+        if (!$vendor || $vendor->id != $id) {
             abort(403, 'Unauthorized access.');
         }
 
         return view(
             'admin.vendor.profile.edit_profile',
-            compact('admin')
+            compact('vendor')
         );
     }
 

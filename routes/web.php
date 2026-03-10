@@ -162,14 +162,18 @@ Route::middleware(VendorMiddleware::class)->group(function () {
         ->name('admin.vendor.walk_in.store');
     Route::get('/vendor/reservation/payment/{reservation}', [VendorProfileController::class, 'showPaymentPage'])
         ->name('vendor.payment.page');
+    Route::get('admin/vendor/cancel', [AmenitiesController::class, 'showCancelledAmenities'])
+        ->name('admin.vendor.cancel');
+    Route::post('admin/vendor/activate-amenity', [AmenitiesController::class, 'activateAmenity'])
+        ->name('admin.vendor.activate');
+});
+
+// Vendor Profile Routes (outside middleware since controller handles auth)
+Route::middleware('auth:admin')->group(function () {
     Route::get('admin/vendor/profile', [VendorProfileController::class, 'view_profile'])
         ->name('admin.vendor.profile');
     Route::get('admin/vendor/profile/{id}/edit', [VendorProfileController::class, 'edit_profile'])
         ->name('admin.vendor.profile.edit');
     Route::patch('admin/vendor/profile/{id}/update', [VendorProfileController::class, 'update_profile'])
         ->name('admin.vendor.profile.update');
-    Route::get('admin/vendor/cancel', [AmenitiesController::class, 'showCancelledAmenities'])
-        ->name('admin.vendor.cancel');
-    Route::post('admin/vendor/activate-amenity', [AmenitiesController::class, 'activateAmenity'])
-        ->name('admin.vendor.activate');
 });
