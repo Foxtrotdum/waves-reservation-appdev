@@ -20,7 +20,7 @@
 
   <nav class="navbar">
     @php
-    $user = \App\Models\Admin::find(Auth::id());
+    $user = Auth::guard('admin')->user();
     @endphp
 
     <div class="left-side-nav">
