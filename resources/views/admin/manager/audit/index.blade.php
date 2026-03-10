@@ -141,23 +141,37 @@
         .pagination {
             display: flex;
             justify-content: center;
+            align-items: center;
             margin-top: 30px;
+            gap: 8px;
         }
 
-        .pagination a,
-        .pagination span {
-            padding: 8px 12px;
-            margin: 0 2px;
+        .pagination-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
             border: 1px solid #ddd;
             border-radius: 4px;
             text-decoration: none;
             color: #3498db;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 80px;
+            height: 40px;
+            transition: all 0.2s ease;
         }
 
-        .pagination .active {
-            background: #3498db;
-            color: white;
+        .pagination-button:hover:not(.disabled) {
+            background: #f8f9fa;
             border-color: #3498db;
+        }
+
+        .pagination-button.disabled {
+            color: #6c757d;
+            cursor: not-allowed;
+            background: #e9ecef;
+            border-color: #dee2e6;
         }
 
         .view-details {
@@ -341,7 +355,17 @@
         <!-- Pagination -->
         @if($auditLogs->hasPages())
             <div class="pagination">
-                {{ $auditLogs->appends(request()->query())->links() }}
+                @if($auditLogs->onFirstPage())
+                    <span class="pagination-button disabled">Previous</span>
+                @else
+                    <a href="{{ $auditLogs->previousPageUrl() }}" class="pagination-button">Previous</a>
+                @endif
+
+                @if($auditLogs->hasMorePages())
+                    <a href="{{ $auditLogs->nextPageUrl() }}" class="pagination-button">Next</a>
+                @else
+                    <span class="pagination-button disabled">Next</span>
+                @endif
             </div>
         @endif
     </div>
